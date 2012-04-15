@@ -1,0 +1,99 @@
+Genesis
+=======
+
+Command-line executable Python script to create a new project from a template.
+
+Usage
+=====
+
+::
+
+    genesis [options]
+
+Where options may include::
+
+    --help|-h           Show this help message and exit.
+    --version           Show version number and exit.
+    --verbose|-v        Enumerate changes as they are made.
+    name=value          Specifies that Tag 'G{name}' should be replaced with
+                        'value'. Many such name=value pairs can be specified,
+                        separated by spaces.
+    dirname             Directory to operate on. Defaults to current.
+
+Description
+===========
+
+Genesis searches through all files in the current directory, and its
+subdirectories, replacing tags of the form ``G{name}`` with values specified on
+the command-line or in a ``~/.genesis`` config file.
+
+Occurences of tags in file or directory names are also replaced.
+
+If the template contains any tags which don't have a defined value, then a
+warning is issued, and the project will still have the corresponding tags in
+it. To fix this, re-run Genesis with extra ``name=value`` pair added to the
+command-line for each of the undefined tags. You might want to consider adding
+those name=value pairs to your ``~/.genesis`` config file for next time.
+
+Creating a template
+--------------------
+
+Genesis does not provide any project templates. It's expected you'll want to
+create your own. Take copy of a small recent project, remove the code, and 
+replace things like the project name with ``G{name}``, and your own contact
+email with ``G{email}``.
+
+For tag values which are constant across all projects, like your email, put them
+into your ``~/.genesis`` file::
+
+    email=me@mine.com
+
+For tag values which vary from one project to the next, you'll need to specify
+them on the command-line when you invoke Genesis. Copy your template into a
+new project directory, and::
+
+    $ genesis name=myproject
+
+Dependencies
+============
+
+Tested on MacOSX, and under Python 3.2.
+
+See dependencies.txt for Python packages.
+
+Install
+=======
+
+::
+
+    $ pip install genesis
+
+Status & Known Problems
+=======================
+
+Still in development. Not yet useable.
+
+Alternatives
+============
+
+I understand Python Paster is a comprehensive alternative. TBH The only reason
+this project exists is because I can't find the part of the Paster documentation
+that tells me how to use it for this.
+
+Thanks
+======
+
+I did it my way.
+
+Contact
+=======
+
+:Documentation & download:
+    http://pypi.python.org/pypi/genesis/
+
+:Source & issues:
+    https://github.com/tartley/genesis
+
+:Contact the author:
+    Jonathan Hartley, tartley@tartley.com, @tartley.
+
