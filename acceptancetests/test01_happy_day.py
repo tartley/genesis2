@@ -5,39 +5,46 @@ from shutil import copytree, rmtree
 from subprocess import PIPE, Popen
 from tempfile import mkdtemp
 from unittest import TestCase
-
+from contextlib import contextmanager
 
 TEST_DATA = join(dirname(__file__), 'test_data')
 
 
+
+@contextmanager
+def create_temp_dir():
+    temp_dir = mkdtemp()
+    yield temp_dir
+    rmtree(temp_dir)
+
+
+@contextmanager
+def cd(dest):
+    orig = getcwd()
+    chdir(dest)
+    yield
+    chdir(orig)
+
+
 class GenesisTest(TestCase):
 
-    def create_temp_dir(self):
-        self.orig_cwd = getcwd()
-        self.temp_dir = mkdtemp()
-        copytree(
-            join(TEST_DATA, 'project'),
-            join(self.temp_dir, 'project'),
-        )
-
-
-    def run_process(self, command):
+    def run_process(self, command, cwd):
         process = Popen(
             command,
-            cwd=join(self.temp_dir, 'project'),
             shell=True,
+            cwd=cwd,
             stdout=PIPE,
             stderr=PIPE,
         )
         out, err = process.communicate()
-        self.assertEqual(process.returncode, 0, err)
-        self.assertEqual(err, b'', err)
+        self.assertEqual(
+            process.returncode, 0, '\n' + err.decode('unicode_escape'))
+        self.assertEqual(err, b'', '\n' + err.decode('unicode_escape'))
         self.assertEqual(out, b'')
-        return process.returncode, out, err
 
 
     def assert_tags_replaced_in_file(self, filename):
-        with open(join(self.temp_dir, 'project', filename)) as fp:
+        with open(filename) as fp:
             content = fp.read()
         self.assertEqual(content, 'name=myproj\n\n')
 
@@ -47,13 +54,13 @@ class GenesisTest(TestCase):
 
 
     def test_tags_are_replaced(self):
-        self.create_temp_dir()
-        try:
-            self.run_process('genesis name=myproj')
-            self.assert_tags_replaced_in_file('file1')
-            self.assert_tags_replaced_in_dirname()
-            self.assert_tags_replaced_in_file(join('dir-myproj', 'file2'))
-        finally:
-            rmtree(self.temp_dir)
-
+        with create_temp_dir() as temp_dir:
+            project_dir = join(temp_dir, 'project')
+            copytree(join(TEST_DATA, 'project'), project_dir)
+            with cd(project_dir):
+                self.run_process('genesis name=myproj', project_dir)
+                self.assert_tags_replaced_in_file(join(project_dir, 'file1'))
+                self.assert_tags_replaced_in_dirname()
+                self.assert_tags_replaced_in_file(
+                    join(project_dir, 'dir-myproj', 'file2'))
 
