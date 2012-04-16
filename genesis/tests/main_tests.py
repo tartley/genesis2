@@ -6,7 +6,7 @@ from unittest import TestCase
 from mock import patch, MagicMock
 
 from ..main import (
-    create_parser, parse_tags, read_content, update_project,
+    create_parser, parse_tags, read_content, transform, update_project,
 )
 
 
@@ -50,11 +50,22 @@ class MainTest(TestCase):
         )
 
 
-    @patch('genesis.main.read_content')
-    @patch('genesis.main.replace_file')
-    @patch('genesis.main.walk')
-    def test_update_project_replaces_content_of_each_file(
-        self, mock_walk, mock_replace_file, mock_content,
+    def test_transform_replaces_tags(self):
+        new_text, changed = transform('aG{name}z', {'name': 'value'})
+        self.assertEqual(new_text, 'avaluez')
+        self.assertTrue(changed)
+
+
+    def test_transform_does_nothing_if_no_recognised_tags(self):
+        new_text, changed = transform('aG{unrecognised}z', {'name': 'value'})
+        self.assertEqual(new_text, 'aG{unrecognised}z')
+        self.assertFalse(changed)
+
+
+    @patch('genesis.main.update_file')
+    @patch('genesis.main.os.walk')
+    def test_update_project_updates_each_file(
+        self, mock_walk, mock_update_file,
     ):
         mock_walk.return_value = [(
             'root',
@@ -66,32 +77,35 @@ class MainTest(TestCase):
         update_project(tags, Namespace())
 
         self.assertEqual(
-            mock_replace_file.call_args_list,
+            mock_update_file.call_args_list,
             [
-                ((join('root', 'file1'), mock_content.return_value, tags), {}),
-                ((join('root', 'file2'), mock_content.return_value, tags), {}),
+                ((join('root', 'file1'), tags), {}),
+                ((join('root', 'file2'), tags), {}),
             ]
         )
 
 
-    #@patch('genesis.main.replace_dir')
-    #@patch('genesis.main.walk')
-    #def test_update_template_replaces_each_dir(
-        #self, mock_walk, mock_replace_dir
-    #):
-        #mock_walk.return_value = [(
-            #'root',
-            #['dir1', 'dir2'],
-            #[]
-        #)]
-        #tags = {}
+    @patch('genesis.main.rename_dir')
+    @patch('genesis.main.os.walk')
+    def test_update_template_renames_each_dir(
+        self, mock_walk, mock_rename_dir
+    ):
+        mock_walk.return_value = [(
+            'root',
+            ['dir1', 'dir2'],
+            []
+        )]
+        tags = {}
 
-        #update_template(tags, Namespace())
+        update_project(tags, Namespace())
 
-        #self.assertEqual(
-            #mock_replace_dir.call_args_list,
-            #[(('dir1', tags), {}), (('dir2', tags), {})]
-        #)
+        self.assertEqual(
+            mock_rename_dir.call_args_list,
+            [
+                ((join('root', 'dir1'), tags), {}),
+                ((join('root', 'dir2'), tags), {}),
+            ]
+        )
 
 
     #@patch('genesis.main.replace_dir')

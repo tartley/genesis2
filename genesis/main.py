@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
-from os import walk
+import os
 from os.path import join
+import re
 import sys
 
 
@@ -36,22 +37,65 @@ def parse_options(parser, args):
 
 
 def read_content(filename):
-    with open(filename, 'rb') as pointer:
+    '''
+    Return the content of the given filename
+    '''
+    with open(filename) as pointer:
         return pointer.read()
 
 
-def replace_file(filename, content, tags):
-    pass
+def transform(text, tags):
+    regex = re.compile('G\{(.+?)\}')
+    changed = [False]
+
+    def replace_tag(match):
+        name = match.group(1)
+        if name in tags:
+            changed[0] = True
+            return tags[name]
+        return match.group(0)
+
+    return regex.sub(replace_tag, text), changed[0]
+
+
+def replace_file(filename, new_filename, content):
+    backup = filename + '.backup'
+    os.rename(filename, backup)
+    with open(new_filename, 'w') as pointer:
+        pointer.write(content)
+    os.remove(backup)
+
+
+def update_file(filename, tags):
+    try:
+        content = read_content(filename)
+        new_content, content_changed = transform(content, tags)
+    except UnicodeDecodeError:
+        # don't attempt to replace tags in binary files 
+        content_changed = False
+
+    new_filename, filename_changed = transform(filename, tags)
+    if content_changed:
+        replace_file(filename, filename, new_content)
+    elif filename_changed:
+        os.rename(filename, new_filename)
+            
+
+def rename_dir(dirname, tags):
+    new_name, changed = transform(dirname, tags)
+    if changed:
+        os.rename(dirname, new_name)
 
 
 def update_project(tags, options):
     '''
     Search-and-replace all tags throughout the project
     '''
-    for root, subdirs, files in walk('.'):
+    for root, subdirs, files in os.walk('.'):
         for filename in files:
-            fullname = join(root, filename)
-            replace_file(fullname, read_content(fullname), tags)
+            update_file(join(root, filename), tags)
+        for dirname in subdirs:
+            rename_dir(join(root, dirname), tags)
 
 
 def main():

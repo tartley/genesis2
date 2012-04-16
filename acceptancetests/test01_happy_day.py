@@ -1,5 +1,5 @@
 #!/usr/bin/env python3.2
-from os import chdir, getcwd
+from os import chdir, getcwd, listdir
 from os.path import dirname, isdir, join
 from shutil import copytree, rmtree
 from subprocess import PIPE, Popen
@@ -14,9 +14,10 @@ TEST_DATA = join(dirname(__file__), 'test_data')
 @contextmanager
 def create_temp_dir():
     temp_dir = mkdtemp()
+    print (temp_dir)
     yield temp_dir
-    rmtree(temp_dir)
-
+    #rmtree(temp_dir)
+    
 
 @contextmanager
 def cd(dest):
@@ -38,7 +39,9 @@ class GenesisTest(TestCase):
         )
         out, err = process.communicate()
         self.assertEqual(
-            process.returncode, 0, '\n' + err.decode('unicode_escape'))
+            process.returncode, 0,
+                '\n' + err.decode('unicode_escape') +
+                '\n' + out.decode('unicode_escape'))
         self.assertEqual(err, b'', '\n' + err.decode('unicode_escape'))
         self.assertEqual(out, b'')
 
@@ -49,8 +52,9 @@ class GenesisTest(TestCase):
         self.assertEqual(content, 'name=myproj\n\n')
 
 
-    def assert_tags_replaced_in_dirname(self):
-        self.assertTrue(isdir('dir-myproj'))
+    def assert_tags_replaced_in_dirname(self, project_dir):
+        self.assertIn('dir-myproj', listdir(project_dir))
+        self.assertTrue(isdir(join(project_dir, 'dir-myproj')))
 
 
     def test_tags_are_replaced(self):
@@ -60,7 +64,7 @@ class GenesisTest(TestCase):
             with cd(project_dir):
                 self.run_process('genesis name=myproj', project_dir)
                 self.assert_tags_replaced_in_file(join(project_dir, 'file1'))
-                self.assert_tags_replaced_in_dirname()
+                self.assert_tags_replaced_in_dirname(project_dir)
                 self.assert_tags_replaced_in_file(
                     join(project_dir, 'dir-myproj', 'file2'))
 
