@@ -8,7 +8,7 @@ NAME=genesis
 
 
 test:
-	python -m unittest discover $(NAME)/tests
+	python -m unittest discover -p *test*.py .
 .PHONY: test
 
 tags:
