@@ -25,7 +25,7 @@ def parse_tags(args):
 def create_parser():
     return ArgumentParser()
 
-        
+
 def parse_options(parser, args):
     '''
     Parse command line args, returning a dict of name=value tags and an
@@ -45,6 +45,11 @@ def read_content(filename):
 
 
 def transform(text, tags):
+    '''
+    Given a body of text, replace all instances of 'G{xxx}' with the value
+    of tags[xxx]. Return a tuple of the result and a boolean which is True
+    if any changes were made.
+    '''
     regex = re.compile('G\{(.+?)\}')
     changed = [False]
 
@@ -59,6 +64,10 @@ def transform(text, tags):
 
 
 def replace_file(filename, new_filename, content):
+    '''
+    Given a filename, a modified filename, and new file content,
+    replace the existing file with the new content, safely.
+    '''
     backup = filename + '.backup'
     os.rename(filename, backup)
     with open(new_filename, 'w') as pointer:
@@ -71,7 +80,7 @@ def update_file(filename, tags):
         content = read_content(filename)
         new_content, content_changed = transform(content, tags)
     except UnicodeDecodeError:
-        # don't attempt to replace tags in binary files 
+        # don't attempt to replace tags in binary files
         content_changed = False
 
     new_filename, filename_changed = transform(filename, tags)
@@ -79,12 +88,14 @@ def update_file(filename, tags):
         replace_file(filename, filename, new_content)
     elif filename_changed:
         os.rename(filename, new_filename)
-            
+
 
 def rename_dir(dirname, tags):
     new_name, changed = transform(dirname, tags)
     if changed:
         os.rename(dirname, new_name)
+        return new_name
+    return dirname
 
 
 def update_project(tags, options):
@@ -94,8 +105,10 @@ def update_project(tags, options):
     for root, subdirs, files in os.walk('.'):
         for filename in files:
             update_file(join(root, filename), tags)
-        for dirname in subdirs:
+        subdirs[:] = [
             rename_dir(join(root, dirname), tags)
+            for dirname in subdirs
+        ]
 
 
 def main():

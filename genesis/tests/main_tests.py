@@ -67,11 +67,7 @@ class MainTest(TestCase):
     def test_update_project_updates_each_file(
         self, mock_walk, mock_update_file,
     ):
-        mock_walk.return_value = [(
-            'root',
-            [],
-            ['file1', 'file2']
-        )]
+        mock_walk.return_value = [('root', [], ['file1', 'file2'])]
         tags = {}
 
         update_project(tags, Namespace())
@@ -87,14 +83,10 @@ class MainTest(TestCase):
 
     @patch('genesis.main.rename_dir')
     @patch('genesis.main.os.walk')
-    def test_update_template_renames_each_dir(
+    def test_update_project_renames_each_dir(
         self, mock_walk, mock_rename_dir
     ):
-        mock_walk.return_value = [(
-            'root',
-            ['dir1', 'dir2'],
-            []
-        )]
+        mock_walk.return_value = [('root', ['dir1', 'dir2'], [])]
         tags = {}
 
         update_project(tags, Namespace())
@@ -108,21 +100,16 @@ class MainTest(TestCase):
         )
 
 
-    #@patch('genesis.main.replace_dir')
-    #@patch('genesis.main.walk')
-    #def test_update_template_tells_os_walk_about_updated_dirs(
-        #self, mock_walk, mock_replace_dir
-    #):
-        #mock_replace_dir.side_effect = lambda dirname, _: 'new' + dirname
-        #subdirs = ['dir1', 'dir2']
-        #mock_walk.return_value = [(
-            #'root',
-            #subdirs,
-            #['file1', 'file2']
-        #)]
+    @patch('genesis.main.rename_dir')
+    @patch('genesis.main.os.walk')
+    def test_update_template_tells_os_walk_about_updated_dirs(
+        self, mock_walk, mock_replace_dir
+    ):
+        mock_replace_dir.side_effect = lambda dirname, _: dirname.replace('dir', 'newdir')
+        subdirs = ['dir1', 'dir2']
+        mock_walk.return_value = [('root', subdirs, [])]
 
-        #update_template({}, Namespace())
+        update_project({}, Namespace())
 
-        #self.assertEqual(subdirs, ['newdir1', 'newdir2'])
-
+        self.assertEqual(subdirs, ['root/newdir1', 'root/newdir2'])
 

@@ -14,9 +14,8 @@ TEST_DATA = join(dirname(__file__), 'test_data')
 @contextmanager
 def create_temp_dir():
     temp_dir = mkdtemp()
-    print (temp_dir)
     yield temp_dir
-    #rmtree(temp_dir)
+    rmtree(temp_dir)
     
 
 @contextmanager
