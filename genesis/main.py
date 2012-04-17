@@ -4,6 +4,7 @@ from os.path import join
 import re
 import sys
 
+from .version import __version__
 
 def parse_tags(args):
     '''
@@ -23,7 +24,10 @@ def parse_tags(args):
 
 
 def create_parser():
-    return ArgumentParser()
+    parser = ArgumentParser()
+    parser.add_argument('--version',
+        action='version', version='%(prog)s v' + __version__)
+    return parser
 
 
 def parse_options(parser, args):
