@@ -1,10 +1,12 @@
 from argparse import Namespace
 from io import IOBase
 from os.path import join
+from textwrap import dedent
 from unittest import TestCase
 
-from mock import patch, MagicMock
+from mock import call, MagicMock, Mock, patch
 
+from .. import __version__
 from ..main import (
     create_parser, parse_tags, read_content, transform, update_project,
 )
@@ -34,7 +36,45 @@ class MainTest(TestCase):
     def test_create_parser(self):
         self.assertEqual(
             create_parser().parse_args([]),
-            Namespace()
+            Namespace(dirname=None)
+        )
+
+    def test_create_parser_handles_dirname(self):
+        self.assertEqual(
+            create_parser().parse_args(['dirname']),
+            Namespace(dirname='dirname')
+        )
+
+    @patch('sys.stderr', Mock())
+    def test_create_parser_errors_on_two_dirnames(self):
+        with self.assertRaises(SystemExit):
+            create_parser().parse_args(['dir1', 'dir2'])
+
+    @patch('sys.stdout')
+    def test_create_parser_handles_help(self, mock_stdout):
+        EXPECTED_HELP_TEXT = dedent("""\
+        usage: python -m unittest [-h] [--version] [dirname]
+        
+        positional arguments:
+          dirname
+          
+        optional arguments:
+          -h, --help  show this help message and exit
+          --version   show program's version number and exit
+        """)
+        with self.assertRaises(SystemExit):
+            create_parser().parse_args(['--help'])
+
+        self.assertEqual(mock_stdout.write.call_args[0][0], EXPECTED_HELP_TEXT)
+
+    @patch('sys.stderr')
+    def test_create_parser_handles_version(self, mock_stderr):
+        with self.assertRaises(SystemExit):
+            create_parser().parse_args(['--version'])
+
+        self.assertEqual(
+            mock_stderr.write.call_args,
+            call('Genesis v{}\n'.format(__version__))
         )
 
 
@@ -51,12 +91,12 @@ class MainTest(TestCase):
 
 
     def test_transform_replaces_tags(self):
-        new_text, changed = transform('aG{name}z', {'name': 'value'})
-        self.assertEqual(new_text, 'avaluez')
+        new_text, changed = transform('aG{name}c', {'name': 'b'})
+        self.assertEqual(new_text, 'abc')
         self.assertTrue(changed)
 
 
-    def test_transform_does_nothing_if_no_recognised_tags(self):
+    def test_transform_does_nothing_to_recognised_tags(self):
         new_text, changed = transform('aG{unrecognised}z', {'name': 'value'})
         self.assertEqual(new_text, 'aG{unrecognised}z')
         self.assertFalse(changed)
@@ -102,7 +142,7 @@ class MainTest(TestCase):
 
     @patch('genesis.main.rename_dir')
     @patch('genesis.main.os.walk')
-    def test_update_template_tells_os_walk_about_updated_dirs(
+    def test_update_project_tells_os_walk_about_updated_dirs(
         self, mock_walk, mock_replace_dir
     ):
         mock_replace_dir.side_effect = lambda dirname, _: dirname.replace('dir', 'newdir')

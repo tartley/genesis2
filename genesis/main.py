@@ -4,7 +4,7 @@ from os.path import join
 import re
 import sys
 
-from . import __version__
+from . import NAME, __version__
 
 
 def parse_tags(args):
@@ -28,7 +28,10 @@ def parse_tags(args):
 def create_parser():
     parser = ArgumentParser()
     parser.add_argument('--version',
-        action='version', version='%(prog)s v' + __version__)
+        action='version',
+        version='{} v{}'.format(NAME.capitalize(), __version__),
+    )
+    parser.add_argument('dirname', nargs='?')
     return parser
 
 
@@ -90,8 +93,7 @@ def rename_dir(dirname, tags):
     new_name, changed = transform(dirname, tags)
     if changed:
         os.rename(dirname, new_name)
-        return new_name
-    return dirname
+    return new_name
 
 
 def update_project(tags, options):
@@ -110,9 +112,9 @@ def update_project(tags, options):
 def main():
     tags, args = parse_tags(sys.argv[1:])
     parser = create_parser()
+    options = parser.parse_args(args)
     if not tags:
         parser.print_help()
         return
-    options = parser.parse_args(args)
     update_project(tags, options)
 
