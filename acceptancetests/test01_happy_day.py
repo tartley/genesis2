@@ -7,8 +7,8 @@ from tempfile import mkdtemp
 from unittest import TestCase
 from contextlib import contextmanager
 
-TEST_DATA = join(dirname(__file__), 'test_data')
 
+TEST_DATA = join(dirname(__file__), 'test_data')
 
 
 @contextmanager
@@ -16,7 +16,7 @@ def create_temp_dir():
     temp_dir = mkdtemp()
     yield temp_dir
     rmtree(temp_dir)
-    
+
 
 @contextmanager
 def cd(dest):
@@ -24,6 +24,15 @@ def cd(dest):
     chdir(dest)
     yield
     chdir(orig)
+
+
+@contextmanager
+def create_test_project(projname):
+    with create_temp_dir() as temp_dir:
+        project_dir = join(temp_dir, projname)
+        copytree(join(TEST_DATA, 'project'), project_dir)
+        with cd(temp_dir):
+            yield project_dir
 
 
 class GenesisTest(TestCase):
@@ -57,13 +66,10 @@ class GenesisTest(TestCase):
 
 
     def test_tags_are_replaced(self):
-        with create_temp_dir() as temp_dir:
-            project_dir = join(temp_dir, 'project')
-            copytree(join(TEST_DATA, 'project'), project_dir)
-            with cd(project_dir):
-                self.run_process('genesis name=myproj', project_dir)
-                self.assert_tags_replaced_in_file(join(project_dir, 'file1'))
-                self.assert_tags_replaced_in_dirname(project_dir)
-                self.assert_tags_replaced_in_file(
-                    join(project_dir, 'dir-myproj', 'file2'))
+        with create_test_project('project') as project_dir:
+            self.run_process('genesis name=myproj', project_dir)
+            self.assert_tags_replaced_in_file(join(project_dir, 'file1'))
+            self.assert_tags_replaced_in_dirname(project_dir)
+            self.assert_tags_replaced_in_file(
+                join(project_dir, 'dir-myproj', 'file2'))
 
