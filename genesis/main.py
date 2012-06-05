@@ -6,11 +6,13 @@ import sys
 
 from .version import __version__
 
+
 def parse_tags(args):
     '''
     Given a list of command line options, return ({tags}, [remaining]), where:
     'tags' is a dict of all the 'name=value' pairs, and 'remaining' is a list
-    of all the command line-args
+    of the other command line-args (i.e. those that start with '-' or don't
+    contain an '=')
     '''
     tags = {}
     remaining = []
@@ -28,16 +30,6 @@ def create_parser():
     parser.add_argument('--version',
         action='version', version='%(prog)s v' + __version__)
     return parser
-
-
-def parse_options(parser, args):
-    '''
-    Parse command line args, returning a dict of name=value tags and an
-    argparse.Namespace of command-line options.
-    '''
-    tags, args = parse_tags(args)
-    options = parser.parse_args(args)
-    return tags, options
 
 
 def read_content(filename):
@@ -115,6 +107,16 @@ def update_project(tags, options):
         ]
 
 
+class CommandLineError(RuntimeError):
+    pass
+
+
 def main():
-    update_project(*parse_options(create_parser(), sys.argv[1:]))
+    tags, args = parse_tags(sys.argv[1:])
+    parser = create_parser()
+    if not tags:
+        parser.print_help()
+        return
+    options = parser.parse_args(args)
+    update_project(tags, options)
 
