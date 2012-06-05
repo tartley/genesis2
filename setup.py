@@ -72,7 +72,7 @@ def get_sdist_config():
 
     return dict(
         name=NAME,
-        version=read_version(join(NAME, 'version.py')),
+        version=read_version(join(NAME, '__init__.py')),
         description=description,
         long_description=long_description,
         url='http://pypi.python.org/pypi/%s/' % (NAME,),

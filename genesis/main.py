@@ -4,7 +4,7 @@ from os.path import join
 import re
 import sys
 
-from .version import __version__
+from . import __version__
 
 
 def parse_tags(args):
