@@ -8,7 +8,8 @@ from mock import call, MagicMock, Mock, patch
 
 from .. import __version__
 from ..main import (
-    create_parser, parse_tags, read_content, transform, update_project,
+    create_parser, parse_tags, read_content, rename_dir, transform,
+    update_project,
 )
 
 
@@ -36,27 +37,27 @@ class MainTest(TestCase):
     def test_create_parser(self):
         self.assertEqual(
             create_parser().parse_args([]),
-            Namespace(dirname=None)
+            Namespace(target='.')
         )
 
-    def test_create_parser_handles_dirname(self):
+    def test_create_parser_handles_target(self):
         self.assertEqual(
-            create_parser().parse_args(['dirname']),
-            Namespace(dirname='dirname')
+            create_parser().parse_args(['target']),
+            Namespace(target='target')
         )
 
     @patch('sys.stderr', Mock())
-    def test_create_parser_errors_on_two_dirnames(self):
+    def test_create_parser_errors_on_two_targets(self):
         with self.assertRaises(SystemExit):
-            create_parser().parse_args(['dir1', 'dir2'])
+            create_parser().parse_args(['t1', 't2'])
 
     @patch('sys.stdout')
     def test_create_parser_handles_help(self, mock_stdout):
         EXPECTED_HELP_TEXT = dedent("""\
-        usage: python -m unittest [-h] [--version] [dirname]
+        usage: python -m unittest [-h] [--version] [target]
         
         positional arguments:
-          dirname
+          target
           
         optional arguments:
           -h, --help  show this help message and exit
@@ -102,6 +103,27 @@ class MainTest(TestCase):
         self.assertFalse(changed)
 
 
+    @patch('genesis.main.os.rename')
+    def test_rename_dir(self, mock_rename):
+
+        new_dirname = rename_dir('root', 'dirG{name}', {'name':'newname'})
+
+        self.assertEqual(new_dirname, 'dirnewname')
+        self.assertEqual(
+            mock_rename.call_args,
+            call('root/dirG{name}', 'root/dirnewname')
+        )
+
+
+    @patch('genesis.main.os.rename')
+    def test_rename_dir_does_nothing_if_no_known_tags_in_dirname(self, mock_rename):
+
+        new_dirname = rename_dir('root', 'dirG{name}', {})
+
+        self.assertEqual(new_dirname, 'dirG{name}')
+        self.assertIsNone(mock_rename.call_args)
+
+
     @patch('genesis.main.update_file')
     @patch('genesis.main.os.walk')
     def test_update_project_updates_each_file(
@@ -110,7 +132,7 @@ class MainTest(TestCase):
         mock_walk.return_value = [('root', [], ['file1', 'file2'])]
         tags = {}
 
-        update_project(tags, Namespace())
+        update_project(tags, Namespace(target='.'))
 
         self.assertEqual(
             mock_update_file.call_args_list,
@@ -129,13 +151,13 @@ class MainTest(TestCase):
         mock_walk.return_value = [('root', ['dir1', 'dir2'], [])]
         tags = {}
 
-        update_project(tags, Namespace())
+        update_project(tags, Namespace(target='.'))
 
         self.assertEqual(
             mock_rename_dir.call_args_list,
             [
-                ((join('root', 'dir1'), tags), {}),
-                ((join('root', 'dir2'), tags), {}),
+                (('root', 'dir1', tags), {}),
+                (('root', 'dir2', tags), {}),
             ]
         )
 
@@ -143,13 +165,14 @@ class MainTest(TestCase):
     @patch('genesis.main.rename_dir')
     @patch('genesis.main.os.walk')
     def test_update_project_tells_os_walk_about_updated_dirs(
-        self, mock_walk, mock_replace_dir
+        self, mock_walk, mock_rename_dir
     ):
-        mock_replace_dir.side_effect = lambda dirname, _: dirname.replace('dir', 'newdir')
+        mock_rename_dir.side_effect = lambda _, dirname, __:\
+            dirname.replace('dir', 'newdir')
         subdirs = ['dir1', 'dir2']
         mock_walk.return_value = [('root', subdirs, [])]
 
-        update_project({}, Namespace())
+        update_project({}, Namespace(target='.'))
 
-        self.assertEqual(subdirs, ['root/newdir1', 'root/newdir2'])
+        self.assertEqual(subdirs, ['newdir1', 'newdir2'])
 

@@ -37,7 +37,7 @@ def create_test_project(projname):
 
 class GenesisTest(TestCase):
 
-    def run_process(self, command, cwd):
+    def run_process(self, command, cwd, expected_out=b''):
         process = Popen(
             command,
             shell=True,
@@ -51,8 +51,7 @@ class GenesisTest(TestCase):
                 '\n' + err.decode('unicode_escape') +
                 '\n' + out.decode('unicode_escape'))
         self.assertEqual(err, b'', '\n' + err.decode('unicode_escape'))
-        self.assertEqual(out, b'')
-
+        self.assertEqual(out, expected_out)
 
     def assert_tags_replaced_in_file(self, filename):
         with open(filename) as fp:
@@ -65,7 +64,7 @@ class GenesisTest(TestCase):
         self.assertTrue(isdir(join(project_dir, 'dir-myproj')))
 
 
-    def test_tags_are_replaced(self):
+    def test_tags_are_replaced_in_current_dir(self):
         with create_test_project('project') as project_dir:
             self.run_process('genesis name=myproj', project_dir)
             self.assert_tags_replaced_in_file(join(project_dir, 'file1'))
@@ -73,3 +72,14 @@ class GenesisTest(TestCase):
             self.assert_tags_replaced_in_file(
                 join(project_dir, 'dir-myproj', 'file2'))
 
+
+    def test_tags_are_replaced_in_specified_dir(self):
+        with create_test_project('project') as project_dir:
+            self.run_process(
+                'genesis name=myproj project',
+                join(project_dir, '..')
+            )
+            self.assert_tags_replaced_in_file(join(project_dir, 'file1'))
+            self.assert_tags_replaced_in_dirname(project_dir)
+            self.assert_tags_replaced_in_file(
+                join(project_dir, 'dir-myproj', 'file2'))

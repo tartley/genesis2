@@ -31,7 +31,7 @@ def create_parser():
         action='version',
         version='{} v{}'.format(NAME.capitalize(), __version__),
     )
-    parser.add_argument('dirname', nargs='?')
+    parser.add_argument('target', nargs='?', default='.')
     return parser
 
 
@@ -89,10 +89,10 @@ def update_file(filename, tags):
         os.rename(filename, new_filename)
 
 
-def rename_dir(dirname, tags):
+def rename_dir(root, dirname, tags):
     new_name, changed = transform(dirname, tags)
     if changed:
-        os.rename(dirname, new_name)
+        os.rename(join(root, dirname), join(root, new_name))
     return new_name
 
 
@@ -100,11 +100,11 @@ def update_project(tags, options):
     '''
     Search-and-replace all tags throughout the project
     '''
-    for root, subdirs, files in os.walk('.'):
+    for root, subdirs, files in os.walk(options.target):
         for filename in files:
             update_file(join(root, filename), tags)
         subdirs[:] = [
-            rename_dir(join(root, dirname), tags)
+            rename_dir(root, dirname, tags)
             for dirname in subdirs
         ]
 
