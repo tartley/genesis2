@@ -107,10 +107,6 @@ def update_project(tags, options):
         ]
 
 
-class CommandLineError(RuntimeError):
-    pass
-
-
 def main():
     tags, args = parse_tags(sys.argv[1:])
     parser = create_parser()
