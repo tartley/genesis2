@@ -3,6 +3,14 @@ Genesis
 
 Run Genesis on a copy of a project template to create a new project.
 
+
+PROJECT DEPRECATED
+==================
+
+This project has been replaced by 'genesis3', a ten line Bash script
+that just invokes 'sed' on every file. This older Python implementation
+should work fine, but I won't be maintaining it.
+
 Usage
 =====
 
